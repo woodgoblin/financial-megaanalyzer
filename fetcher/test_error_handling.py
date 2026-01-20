@@ -6,15 +6,15 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from analyze_aib_dates import analyze_aib_statements
+from analyze_aib_dates import analyze_statements
 
 
 class TestErrorHandling:
     """Tests for handling PDF processing errors."""
 
-    @patch('analyze_aib_dates.extract_statement_dates')
+    @patch('analyze_aib_dates.parse_statement')
     @patch('analyze_aib_dates.compute_file_signature')
-    def test_failed_pdf_is_listed_in_output(self, mock_signature, mock_extract_dates):
+    def test_failed_pdf_is_listed_in_output(self, mock_signature, mock_parse_statement):
         """Failed PDF files are included in statements list with error field populated."""
         # Arrange
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -27,13 +27,13 @@ class TestErrorHandling:
             pdf2.write_bytes(b"content2")
             
             mock_signature.side_effect = ["sig1", "sig2"]
-            mock_extract_dates.side_effect = [
-                ("1 Mar 2015", "31 Mar 2015"),
+            mock_parse_statement.side_effect = [
+                ("1 Mar 2015", "31 Mar 2015", "Test Parser"),
                 None
             ]
             
             # Act
-            result = analyze_aib_statements(tmppath)
+            result = analyze_statements(tmppath)
         
         # Assert
         assert result is not None
@@ -48,9 +48,9 @@ class TestErrorHandling:
         assert broken_stmt.start_date is None
         assert broken_stmt.end_date is None
 
-    @patch('analyze_aib_dates.extract_statement_dates')
+    @patch('analyze_aib_dates.parse_statement')
     @patch('analyze_aib_dates.compute_file_signature')
-    def test_multiple_failed_pdfs_all_listed(self, mock_signature, mock_extract_dates):
+    def test_multiple_failed_pdfs_all_listed(self, mock_signature, mock_parse_statement):
         """Multiple failed PDFs are all included in the output."""
         # Arrange
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -66,20 +66,20 @@ class TestErrorHandling:
             pdf3.write_bytes(b"content3")
             
             mock_signature.side_effect = ["sig1", "sig2", "sig3"]
-            mock_extract_dates.side_effect = [None, None, None]
+            mock_parse_statement.side_effect = [None, None, None]
             
             # Act
-            result = analyze_aib_statements(tmppath)
+            result = analyze_statements(tmppath)
         
         # Assert
         assert result is not None
         assert len(result.statements) == 3
         assert all(stmt.error is not None for stmt in result.statements)
 
-    @patch('analyze_aib_dates.extract_statement_dates')
+    @patch('analyze_aib_dates.parse_statement')
     @patch('analyze_aib_dates.compute_file_signature')
     def test_error_message_indicates_date_extraction_failure(
-        self, mock_signature, mock_extract_dates
+        self, mock_signature, mock_parse_statement
     ):
         """Error message clearly indicates date extraction failure."""
         # Arrange
@@ -90,10 +90,10 @@ class TestErrorHandling:
             pdf.write_bytes(b"content")
             
             mock_signature.return_value = "sig1"
-            mock_extract_dates.return_value = None
+            mock_parse_statement.return_value = None
             
             # Act
-            result = analyze_aib_statements(tmppath)
+            result = analyze_statements(tmppath)
         
         # Assert
         assert result is not None
@@ -101,10 +101,10 @@ class TestErrorHandling:
         assert result.statements[0].error is not None
         assert "date" in result.statements[0].error.lower()
 
-    @patch('analyze_aib_dates.extract_statement_dates')
+    @patch('analyze_aib_dates.parse_statement')
     @patch('analyze_aib_dates.compute_file_signature')
     def test_failed_pdfs_excluded_from_summary_calculations(
-        self, mock_signature, mock_extract_dates
+        self, mock_signature, mock_parse_statement
     ):
         """Failed PDFs are not included in period calculations but counted in total."""
         # Arrange
@@ -118,13 +118,13 @@ class TestErrorHandling:
             pdf2.write_bytes(b"content2")
             
             mock_signature.side_effect = ["sig1", "sig2"]
-            mock_extract_dates.side_effect = [
-                ("1 Apr 2014", "30 Apr 2014"),
+            mock_parse_statement.side_effect = [
+                ("1 Apr 2014", "30 Apr 2014", "Test Parser"),
                 None
             ]
             
             # Act
-            result = analyze_aib_statements(tmppath)
+            result = analyze_statements(tmppath)
         
         # Assert
         assert result is not None
@@ -132,10 +132,10 @@ class TestErrorHandling:
         assert result.summary.continuous_period_start == "1 Apr 2014"
         assert result.summary.continuous_period_end == "30 Apr 2014"
 
-    @patch('analyze_aib_dates.extract_statement_dates')
+    @patch('analyze_aib_dates.parse_statement')
     @patch('analyze_aib_dates.compute_file_signature')
     def test_failed_pdfs_not_included_in_duplicate_detection(
-        self, mock_signature, mock_extract_dates
+        self, mock_signature, mock_parse_statement
     ):
         """Failed PDFs with same signature are not flagged as duplicates."""
         # Arrange
@@ -149,10 +149,10 @@ class TestErrorHandling:
             pdf2.write_bytes(b"content")
             
             mock_signature.return_value = "same_sig"
-            mock_extract_dates.return_value = None
+            mock_parse_statement.return_value = None
             
             # Act
-            result = analyze_aib_statements(tmppath)
+            result = analyze_statements(tmppath)
         
         # Assert
         assert result is not None
@@ -160,10 +160,10 @@ class TestErrorHandling:
         assert all(stmt.error is not None for stmt in result.statements)
         assert len(result.summary.duplicates) == 0
 
-    @patch('analyze_aib_dates.extract_statement_dates')
+    @patch('analyze_aib_dates.parse_statement')
     @patch('analyze_aib_dates.compute_file_signature')  
     def test_mix_of_valid_and_failed_pdfs_processed_correctly(
-        self, mock_signature, mock_extract_dates
+        self, mock_signature, mock_parse_statement
     ):
         """Mix of valid and failed PDFs are all listed with appropriate fields."""
         # Arrange
@@ -183,15 +183,15 @@ class TestErrorHandling:
             failed2.write_bytes(b"f2")
             
             mock_signature.side_effect = ["sig1", "sig2", "sig3", "sig4"]
-            mock_extract_dates.side_effect = [
-                ("1 Jan 2013", "31 Jan 2013"),
+            mock_parse_statement.side_effect = [
+                ("1 Jan 2013", "31 Jan 2013", "Test Parser"),
                 None,
-                ("1 Feb 2013", "28 Feb 2013"),
+                ("1 Feb 2013", "28 Feb 2013", "Test Parser"),
                 None
             ]
             
             # Act
-            result = analyze_aib_statements(tmppath)
+            result = analyze_statements(tmppath)
         
         # Assert
         assert result is not None
