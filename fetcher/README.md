@@ -21,12 +21,31 @@ python main.py
 pytest
 ```
 
-## Libraries
+## Usage: Statement Analysis
 
-- **pypdf** (6.6.0+) - PDF reading
-- **pdfplumber** (0.11.4+) - PDF table extraction
-- **pymupdf** (1.24.14+) - PDF analysis
-- **sqlite3** - Built-in with Python
+To analyze statements:
+```bash
+python analyze_aib_dates.py ../statements_raw/aib/debit
+python analyze_aib_dates.py ../statements_raw/aib/credit
+python analyze_aib_dates.py ../statements_raw/revolut/debit-eur
+```
+
+## Usage: Statement File Renaming
+
+Rename statement PDFs with descriptive filenames for better document keeping, file indexing, and submitting applications requiring statements dating back multiple years.
+
+The renamer copies files to a `renamed` folder with format: `<ParserName>_from_<MMMYYYY>_to_<MMMYYYY>.pdf`
+
+```bash
+# Rename files (creates input_dir/renamed folder)
+python rename_statements.py ../statements_raw/aib/debit
+
+# Custom output directory
+python rename_statements.py ../statements_raw/aib/debit -o /path/to/output
+
+# Dry run (preview without copying)
+python rename_statements.py ../statements_raw/aib/debit -n
+```
 
 ## Known Issues
 
