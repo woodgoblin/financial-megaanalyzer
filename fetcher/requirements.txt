@@ -1,0 +1,10 @@
+# PDF reading and analysis
+pypdf>=6.6.0
+pdfplumber>=0.11.4
+pymupdf>=1.24.14
+
+# Data validation
+pydantic>=2.10.0
+
+# Testing
+pytest>=8.3.0
