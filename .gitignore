@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Financial statements (raw data)
+statements_raw/
+
+# Fetcher virtual environment
+fetcher/venv/
