@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 class StatementInfo(BaseModel):
     """Information about a single statement file."""
-    
+
     file_name: str
     file_path: str
     start_date: Optional[str] = None
@@ -23,7 +23,7 @@ class StatementInfo(BaseModel):
 
 class StatementBreak(BaseModel):
     """Information about a gap between consecutive statements."""
-    
+
     previous_file: str
     previous_end_date: str
     next_file: str
@@ -33,14 +33,14 @@ class StatementBreak(BaseModel):
 
 class DuplicateGroup(BaseModel):
     """Group of duplicate files with the same content."""
-    
+
     signature: str
     files: list[str] = Field(default_factory=list)
 
 
 class AnalysisSummary(BaseModel):
     """Summary analysis of all statements."""
-    
+
     total_files: int
     continuous_period_start: str
     continuous_period_end: str
@@ -51,6 +51,6 @@ class AnalysisSummary(BaseModel):
 
 class StatementsAnalysis(BaseModel):
     """Complete analysis of statements."""
-    
+
     statements: list[StatementInfo] = Field(default_factory=list)
     summary: AnalysisSummary

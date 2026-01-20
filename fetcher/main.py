@@ -4,7 +4,7 @@
 def read_pdf(pdf_path: str) -> str:
     """Read text from a PDF file."""
     from pypdf import PdfReader
-    
+
     reader = PdfReader(pdf_path)
     text = ""
     for page in reader.pages:
