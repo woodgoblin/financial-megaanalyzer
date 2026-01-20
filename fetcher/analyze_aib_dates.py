@@ -18,6 +18,7 @@ from parsers import parse_statement
 # Import parsers to trigger auto-registration
 import parsers.aib_debit  # noqa: F401
 import parsers.aib_credit  # noqa: F401
+import parsers.revolut_debit  # noqa: F401
 
 
 def compute_file_signature(pdf_path: Path) -> str:
