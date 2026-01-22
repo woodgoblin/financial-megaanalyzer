@@ -33,3 +33,15 @@ class StatementParser(Protocol):
             Tuple of (start_date, end_date) as strings, or None if extraction fails
         """
         ...
+
+    def extract_transactions(self, pdf_path: Path) -> list:
+        """
+        Extract transaction records from a PDF statement.
+
+        Args:
+            pdf_path: Path to the PDF file
+
+        Returns:
+            List of Transaction objects, or empty list if extraction fails
+        """
+        ...

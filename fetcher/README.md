@@ -33,6 +33,25 @@ python analyze_aib_dates.py ../statements_raw/aib/credit
 python analyze_aib_dates.py ../statements_raw/revolut/debit-eur
 ```
 
+## Usage: Transaction Extraction
+
+### Print Transactions
+Extract and display all transactions from a single PDF statement:
+```bash
+python print_transactions.py <pdf_file_path>
+```
+
+### Analyze Transactions
+Extract and analyze transactions from all PDFs in a directory:
+```bash
+python analyze_transactions.py <statements_directory>
+```
+
+The analysis includes:
+- Transaction summary (counts, totals by type/currency)
+- Balance analysis for debit accounts (per-file and aggregate)
+- Foreign currency transaction details
+
 ## Usage: Statement File Renaming
 
 Rename statement PDFs with descriptive filenames for better document keeping, file indexing, and submitting applications requiring statements dating back multiple years.
