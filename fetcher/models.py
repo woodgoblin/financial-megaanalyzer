@@ -54,3 +54,35 @@ class StatementsAnalysis(BaseModel):
 
     statements: list[StatementInfo] = Field(default_factory=list)
     summary: AnalysisSummary
+
+
+class Transaction(BaseModel):
+    """A single transaction record from a statement."""
+
+    # Mandatory fields
+    amount: float
+    """Transaction amount (always positive, use transaction_type to determine debit/credit)."""
+    currency: str = "EUR"
+    """Currency code (e.g., 'EUR', 'USD', 'UAH')."""
+    transaction_type: str
+    """Either 'Credit' or 'Debit'."""
+    details: str
+    """Transaction description/details."""
+    transaction_date: str
+    """Transaction date in 'DD MMM YYYY' format."""
+
+    # Optional fields
+    balance: Optional[float] = None
+    """Running balance after transaction (for debit accounts)."""
+    reference: Optional[str] = None
+    """Transaction reference number."""
+    original_currency: Optional[str] = None
+    """Original currency for foreign transactions."""
+    original_amount: Optional[float] = None
+    """Original amount in foreign currency."""
+    exchange_rate: Optional[float] = None
+    """Exchange rate used for conversion."""
+    fx_fee: Optional[float] = None
+    """Foreign exchange fee."""
+    posting_date: Optional[str] = None
+    """Posting date in 'DD MMM YYYY' format (for credit accounts)."""
