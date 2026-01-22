@@ -311,31 +311,31 @@ class TestAIBDebitParserExtractTransactions:
         # Arrange
         mock_pdf = Mock()
         mock_page = Mock()
-        
+
         # Mock words with column positions
         # Header row: Debit at x=250, Credit at x=350, Balance at x=450
         # Transaction: date at x=50, description at x=100, amount at x=280 (debit column), balance at x=460
         mock_page.extract_words.return_value = [
-            {'text': 'Date', 'x0': 50, 'x1': 90, 'top': 100},
-            {'text': 'Details', 'x0': 100, 'x1': 200, 'top': 100},
-            {'text': 'Debit', 'x0': 250, 'x1': 300, 'top': 100},
-            {'text': 'Credit', 'x0': 350, 'x1': 400, 'top': 100},
-            {'text': 'Balance', 'x0': 450, 'x1': 500, 'top': 100},
-            {'text': '15', 'x0': 50, 'x1': 70, 'top': 150},
-            {'text': 'Mar', 'x0': 75, 'x1': 100, 'top': 150},
-            {'text': '2024', 'x0': 105, 'x1': 140, 'top': 150},
-            {'text': 'TEST', 'x0': 150, 'x1': 190, 'top': 150},
-            {'text': 'MERCHANT', 'x0': 195, 'x1': 270, 'top': 150},
-            {'text': '100.00', 'x0': 280, 'x1': 330, 'top': 150},  # In debit column
-            {'text': '5000.00', 'x0': 460, 'x1': 520, 'top': 150},  # Balance
+            {"text": "Date", "x0": 50, "x1": 90, "top": 100},
+            {"text": "Details", "x0": 100, "x1": 200, "top": 100},
+            {"text": "Debit", "x0": 250, "x1": 300, "top": 100},
+            {"text": "Credit", "x0": 350, "x1": 400, "top": 100},
+            {"text": "Balance", "x0": 450, "x1": 500, "top": 100},
+            {"text": "15", "x0": 50, "x1": 70, "top": 150},
+            {"text": "Mar", "x0": 75, "x1": 100, "top": 150},
+            {"text": "2024", "x0": 105, "x1": 140, "top": 150},
+            {"text": "TEST", "x0": 150, "x1": 190, "top": 150},
+            {"text": "MERCHANT", "x0": 195, "x1": 270, "top": 150},
+            {"text": "100.00", "x0": 280, "x1": 330, "top": 150},  # In debit column
+            {"text": "5000.00", "x0": 460, "x1": 520, "top": 150},  # Balance
         ]
         mock_pdf.pages = [mock_page]
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
-        
+
         # Act
         parser = AIBDebitParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert len(result) == 1
         assert result[0].amount == 100.00
@@ -350,26 +350,31 @@ class TestAIBDebitParserExtractTransactions:
         # Arrange
         mock_pdf = Mock()
         mock_page = Mock()
-        
+
         mock_page.extract_words.return_value = [
-            {'text': 'Debit', 'x0': 250, 'x1': 300, 'top': 100},
-            {'text': 'Credit', 'x0': 350, 'x1': 400, 'top': 100},
-            {'text': 'Balance', 'x0': 450, 'x1': 500, 'top': 100},
-            {'text': '20', 'x0': 50, 'x1': 70, 'top': 150},
-            {'text': 'Apr', 'x0': 75, 'x1': 100, 'top': 150},
-            {'text': '2024', 'x0': 105, 'x1': 140, 'top': 150},
-            {'text': 'SALARY', 'x0': 150, 'x1': 200, 'top': 150},
-            {'text': 'PAYMENT', 'x0': 195, 'x1': 240, 'top': 150},  # Before details_max_x (debit_range[0] = 200)
-            {'text': '2500.00', 'x0': 360, 'x1': 410, 'top': 150},  # In credit column
-            {'text': '7500.00', 'x0': 460, 'x1': 520, 'top': 150},  # Balance
+            {"text": "Debit", "x0": 250, "x1": 300, "top": 100},
+            {"text": "Credit", "x0": 350, "x1": 400, "top": 100},
+            {"text": "Balance", "x0": 450, "x1": 500, "top": 100},
+            {"text": "20", "x0": 50, "x1": 70, "top": 150},
+            {"text": "Apr", "x0": 75, "x1": 100, "top": 150},
+            {"text": "2024", "x0": 105, "x1": 140, "top": 150},
+            {"text": "SALARY", "x0": 150, "x1": 200, "top": 150},
+            {
+                "text": "PAYMENT",
+                "x0": 195,
+                "x1": 240,
+                "top": 150,
+            },  # Before details_max_x (debit_range[0] = 200)
+            {"text": "2500.00", "x0": 360, "x1": 410, "top": 150},  # In credit column
+            {"text": "7500.00", "x0": 460, "x1": 520, "top": 150},  # Balance
         ]
         mock_pdf.pages = [mock_page]
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
-        
+
         # Act
         parser = AIBDebitParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert len(result) == 1
         assert result[0].amount == 2500.00
@@ -384,25 +389,25 @@ class TestAIBDebitParserExtractTransactions:
         # Arrange
         mock_pdf = Mock()
         mock_page = Mock()
-        
+
         mock_page.extract_words.return_value = [
-            {'text': 'Debit', 'x0': 250, 'x1': 300, 'top': 100},
-            {'text': 'Credit', 'x0': 350, 'x1': 400, 'top': 100},
-            {'text': 'Balance', 'x0': 450, 'x1': 500, 'top': 100},
-            {'text': '1', 'x0': 50, 'x1': 70, 'top': 150},
-            {'text': 'Jan', 'x0': 75, 'x1': 100, 'top': 150},
-            {'text': '2024', 'x0': 105, 'x1': 140, 'top': 150},
-            {'text': 'OPENING', 'x0': 150, 'x1': 220, 'top': 150},
-            {'text': 'BALANCE', 'x0': 225, 'x1': 290, 'top': 150},
-            {'text': '1000.00', 'x0': 460, 'x1': 520, 'top': 150},  # Balance only
+            {"text": "Debit", "x0": 250, "x1": 300, "top": 100},
+            {"text": "Credit", "x0": 350, "x1": 400, "top": 100},
+            {"text": "Balance", "x0": 450, "x1": 500, "top": 100},
+            {"text": "1", "x0": 50, "x1": 70, "top": 150},
+            {"text": "Jan", "x0": 75, "x1": 100, "top": 150},
+            {"text": "2024", "x0": 105, "x1": 140, "top": 150},
+            {"text": "OPENING", "x0": 150, "x1": 220, "top": 150},
+            {"text": "BALANCE", "x0": 225, "x1": 290, "top": 150},
+            {"text": "1000.00", "x0": 460, "x1": 520, "top": 150},  # Balance only
         ]
         mock_pdf.pages = [mock_page]
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
-        
+
         # Act
         parser = AIBDebitParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert len(result) == 1
         assert result[0].amount == 0.0
@@ -416,30 +421,30 @@ class TestAIBDebitParserExtractTransactions:
         # Arrange
         mock_pdf = Mock()
         mock_page = Mock()
-        
+
         mock_page.extract_words.return_value = [
-            {'text': 'Debit', 'x0': 250, 'x1': 300, 'top': 100},
-            {'text': 'Credit', 'x0': 350, 'x1': 400, 'top': 100},
-            {'text': 'Balance', 'x0': 450, 'x1': 500, 'top': 100},
+            {"text": "Debit", "x0": 250, "x1": 300, "top": 100},
+            {"text": "Credit", "x0": 350, "x1": 400, "top": 100},
+            {"text": "Balance", "x0": 450, "x1": 500, "top": 100},
             # First transaction
-            {'text': '10', 'x0': 50, 'x1': 70, 'top': 150},
-            {'text': 'May', 'x0': 75, 'x1': 100, 'top': 150},
-            {'text': '2024', 'x0': 105, 'x1': 140, 'top': 150},
-            {'text': 'MERCHANT1', 'x0': 150, 'x1': 230, 'top': 150},
-            {'text': '50.00', 'x0': 280, 'x1': 330, 'top': 150},  # Debit
-            {'text': '4950.00', 'x0': 460, 'x1': 520, 'top': 150},
+            {"text": "10", "x0": 50, "x1": 70, "top": 150},
+            {"text": "May", "x0": 75, "x1": 100, "top": 150},
+            {"text": "2024", "x0": 105, "x1": 140, "top": 150},
+            {"text": "MERCHANT1", "x0": 150, "x1": 230, "top": 150},
+            {"text": "50.00", "x0": 280, "x1": 330, "top": 150},  # Debit
+            {"text": "4950.00", "x0": 460, "x1": 520, "top": 150},
             # Second transaction (same day, no date repeated)
-            {'text': 'MERCHANT2', 'x0': 150, 'x1': 230, 'top': 180},
-            {'text': '25.00', 'x0': 280, 'x1': 330, 'top': 180},  # Debit
-            {'text': '4925.00', 'x0': 460, 'x1': 520, 'top': 180},
+            {"text": "MERCHANT2", "x0": 150, "x1": 230, "top": 180},
+            {"text": "25.00", "x0": 280, "x1": 330, "top": 180},  # Debit
+            {"text": "4925.00", "x0": 460, "x1": 520, "top": 180},
         ]
         mock_pdf.pages = [mock_page]
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
-        
+
         # Act
         parser = AIBDebitParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert len(result) == 2
         assert result[0].amount == 50.00
@@ -455,27 +460,27 @@ class TestAIBDebitParserExtractTransactions:
         # Arrange
         mock_pdf = Mock()
         mock_page = Mock()
-        
+
         mock_page.extract_words.return_value = [
-            {'text': 'Debit', 'x0': 250, 'x1': 300, 'top': 100},
-            {'text': 'Credit', 'x0': 350, 'x1': 400, 'top': 100},
-            {'text': 'Balance', 'x0': 450, 'x1': 500, 'top': 100},
-            {'text': '5', 'x0': 50, 'x1': 70, 'top': 150},
-            {'text': 'Jun', 'x0': 75, 'x1': 100, 'top': 150},
-            {'text': '2024', 'x0': 105, 'x1': 140, 'top': 150},
-            {'text': 'PAYMENT', 'x0': 150, 'x1': 220, 'top': 150},
-            {'text': '200.00', 'x0': 280, 'x1': 330, 'top': 150},  # Debit
-            {'text': '4800.00', 'x0': 460, 'x1': 520, 'top': 150},
+            {"text": "Debit", "x0": 250, "x1": 300, "top": 100},
+            {"text": "Credit", "x0": 350, "x1": 400, "top": 100},
+            {"text": "Balance", "x0": 450, "x1": 500, "top": 100},
+            {"text": "5", "x0": 50, "x1": 70, "top": 150},
+            {"text": "Jun", "x0": 75, "x1": 100, "top": 150},
+            {"text": "2024", "x0": 105, "x1": 140, "top": 150},
+            {"text": "PAYMENT", "x0": 150, "x1": 220, "top": 150},
+            {"text": "200.00", "x0": 280, "x1": 330, "top": 150},  # Debit
+            {"text": "4800.00", "x0": 460, "x1": 520, "top": 150},
             # Reference on next line
-            {'text': 'IE12345678901234', 'x0': 150, 'x1': 300, 'top': 180},
+            {"text": "IE12345678901234", "x0": 150, "x1": 300, "top": 180},
         ]
         mock_pdf.pages = [mock_page]
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
-        
+
         # Act
         parser = AIBDebitParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert len(result) == 1
         assert result[0].amount == 200.00
@@ -487,20 +492,20 @@ class TestAIBDebitParserExtractTransactions:
         # Arrange
         mock_pdf = Mock()
         mock_page = Mock()
-        
+
         # No Debit/Credit headers
         mock_page.extract_words.return_value = [
-            {'text': 'Some', 'x0': 50, 'x1': 90, 'top': 100},
-            {'text': 'random', 'x0': 100, 'x1': 160, 'top': 100},
-            {'text': 'text', 'x0': 165, 'x1': 200, 'top': 100},
+            {"text": "Some", "x0": 50, "x1": 90, "top": 100},
+            {"text": "random", "x0": 100, "x1": 160, "top": 100},
+            {"text": "text", "x0": 165, "x1": 200, "top": 100},
         ]
         mock_pdf.pages = [mock_page]
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
-        
+
         # Act
         parser = AIBDebitParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert result == []
 
@@ -509,11 +514,11 @@ class TestAIBDebitParserExtractTransactions:
         """Exception during PDF processing returns empty list."""
         # Arrange
         mock_pdfplumber.open.side_effect = Exception("PDF error")
-        
+
         # Act
         parser = AIBDebitParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert result == []
 
@@ -523,30 +528,30 @@ class TestAIBDebitParserExtractTransactions:
         # Arrange
         mock_pdf = Mock()
         mock_page = Mock()
-        
+
         mock_page.extract_words.return_value = [
-            {'text': 'Debit', 'x0': 250, 'x1': 300, 'top': 100},
-            {'text': 'Credit', 'x0': 350, 'x1': 400, 'top': 100},
-            {'text': 'Balance', 'x0': 450, 'x1': 500, 'top': 100},
-            {'text': '15', 'x0': 50, 'x1': 70, 'top': 150},
-            {'text': 'Jul', 'x0': 75, 'x1': 100, 'top': 150},
-            {'text': '2024', 'x0': 105, 'x1': 140, 'top': 150},
-            {'text': 'TRANSACTION', 'x0': 150, 'x1': 250, 'top': 150},
-            {'text': '75.00', 'x0': 280, 'x1': 330, 'top': 150},
-            {'text': '4925.00', 'x0': 460, 'x1': 520, 'top': 150},
+            {"text": "Debit", "x0": 250, "x1": 300, "top": 100},
+            {"text": "Credit", "x0": 350, "x1": 400, "top": 100},
+            {"text": "Balance", "x0": 450, "x1": 500, "top": 100},
+            {"text": "15", "x0": 50, "x1": 70, "top": 150},
+            {"text": "Jul", "x0": 75, "x1": 100, "top": 150},
+            {"text": "2024", "x0": 105, "x1": 140, "top": 150},
+            {"text": "TRANSACTION", "x0": 150, "x1": 250, "top": 150},
+            {"text": "75.00", "x0": 280, "x1": 330, "top": 150},
+            {"text": "4925.00", "x0": 460, "x1": 520, "top": 150},
             # Footer text
-            {'text': 'Thank', 'x0': 50, 'x1': 100, 'top': 700},
-            {'text': 'you', 'x0': 105, 'x1': 130, 'top': 700},
-            {'text': 'for', 'x0': 135, 'x1': 160, 'top': 700},
-            {'text': 'banking', 'x0': 165, 'x1': 230, 'top': 700},
+            {"text": "Thank", "x0": 50, "x1": 100, "top": 700},
+            {"text": "you", "x0": 105, "x1": 130, "top": 700},
+            {"text": "for", "x0": 135, "x1": 160, "top": 700},
+            {"text": "banking", "x0": 165, "x1": 230, "top": 700},
         ]
         mock_pdf.pages = [mock_page]
         mock_pdfplumber.open.return_value.__enter__.return_value = mock_pdf
-        
+
         # Act
         parser = AIBDebitParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert len(result) == 1
         assert result[0].details == "TRANSACTION"

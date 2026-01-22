@@ -20,7 +20,9 @@ def parse_date(date_str: str) -> datetime:
     return datetime.strptime(date_str, "%d %b %Y")
 
 
-def analyze_transactions_directory(statements_dir: Path) -> dict[str, list[Transaction]]:
+def analyze_transactions_directory(
+    statements_dir: Path,
+) -> dict[str, list[Transaction]]:
     """
     Analyze transactions from all PDF statements in a directory.
 
@@ -51,7 +53,9 @@ def analyze_transactions_directory(statements_dir: Path) -> dict[str, list[Trans
 
         if transactions:
             results[str(pdf_path)] = transactions
-            print(f"[OK] {pdf_path.name}: {len(transactions)} transactions ({start_date} to {end_date})")
+            print(
+                f"[OK] {pdf_path.name}: {len(transactions)} transactions ({start_date} to {end_date})"
+            )
 
     return results
 
@@ -59,39 +63,42 @@ def analyze_transactions_directory(statements_dir: Path) -> dict[str, list[Trans
 def analyze_debit_balances(transactions: list[Transaction]) -> dict | None:
     """
     Analyze balances for debit account transactions.
-    
+
     Returns:
         Dictionary with balance analysis or None if not applicable
     """
     if not transactions:
         return None
-    
+
     # Filter for debit account transactions (they have balance field)
     debit_txs = [tx for tx in transactions if tx.balance is not None]
     if not debit_txs:
         return None
-    
+
     # Sort by date to find earliest and latest
     sorted_txs = sorted(debit_txs, key=lambda tx: parse_date(tx.transaction_date))
-    
+
     # Skip OPENING BALANCE/BALANCE FORWARD entries when finding earliest transaction
     # They represent the starting balance, not a transaction that changes it
     earliest_tx = None
     for tx in sorted_txs:
-        if "BALANCE FORWARD" not in tx.details.upper() and "OPENING BALANCE" not in tx.details.upper():
+        if (
+            "BALANCE FORWARD" not in tx.details.upper()
+            and "OPENING BALANCE" not in tx.details.upper()
+        ):
             earliest_tx = tx
             break
-    
+
     # If all transactions are OPENING BALANCE, use the first one
     if earliest_tx is None:
         earliest_tx = sorted_txs[0]
-    
+
     latest_tx = sorted_txs[-1]
-    
+
     # Starting balance (STATED): the balance shown in the statement for the earliest transaction date
     # This is the balance AFTER the first transaction
     stated_starting_balance = earliest_tx.balance
-    
+
     # Starting balance (for calculation): the balance BEFORE the first transaction
     # If first transaction is a debit, balance before = balance after + amount
     # If first transaction is a credit, balance before = balance after - amount
@@ -99,30 +106,39 @@ def analyze_debit_balances(transactions: list[Transaction]) -> dict | None:
         calculated_starting_balance = earliest_tx.balance + earliest_tx.amount
     else:
         calculated_starting_balance = earliest_tx.balance - earliest_tx.amount
-    
+
     # Ending balance: use the stated balance from the latest transaction with a balance
     # But also calculate it by processing all transactions to verify
     ending_balance = latest_tx.balance
-    
+
     # Calculate: starting balance (before first tx) - debits + credits
     # Exclude BALANCE FORWARD/OPENING BALANCE entries (they have amount 0.00 and are not real transactions)
-    total_debits = sum(tx.amount for tx in transactions 
-                      if tx.transaction_type == "Debit" 
-                      and "BALANCE FORWARD" not in tx.details.upper() 
-                      and "OPENING BALANCE" not in tx.details.upper())
-    total_credits = sum(tx.amount for tx in transactions 
-                       if tx.transaction_type == "Credit" 
-                       and "BALANCE FORWARD" not in tx.details.upper() 
-                       and "OPENING BALANCE" not in tx.details.upper())
-    
+    total_debits = sum(
+        tx.amount
+        for tx in transactions
+        if tx.transaction_type == "Debit"
+        and "BALANCE FORWARD" not in tx.details.upper()
+        and "OPENING BALANCE" not in tx.details.upper()
+    )
+    total_credits = sum(
+        tx.amount
+        for tx in transactions
+        if tx.transaction_type == "Credit"
+        and "BALANCE FORWARD" not in tx.details.upper()
+        and "OPENING BALANCE" not in tx.details.upper()
+    )
+
     # For debit accounts: starting balance decreases with debits, increases with credits
     calculated_ending = calculated_starting_balance - total_debits + total_credits
-    
+
     # Also calculate ending balance by processing transactions in order (more accurate)
     # This handles cases where some transactions don't have explicit balances
     running_balance = calculated_starting_balance
     for tx in sorted(transactions, key=lambda tx: parse_date(tx.transaction_date)):
-        if "BALANCE FORWARD" in tx.details.upper() or "OPENING BALANCE" in tx.details.upper():
+        if (
+            "BALANCE FORWARD" in tx.details.upper()
+            or "OPENING BALANCE" in tx.details.upper()
+        ):
             continue  # Skip opening balance entries
         if tx.transaction_type == "Debit":
             running_balance -= tx.amount
@@ -132,21 +148,21 @@ def analyze_debit_balances(transactions: list[Transaction]) -> dict | None:
         if tx.balance is not None:
             # Update running balance to match stated balance (in case of discrepancies)
             running_balance = tx.balance
-    
+
     # Use the calculated running balance as the final calculated ending
     calculated_ending_from_running = running_balance
     discrepancy = calculated_ending_from_running - ending_balance
-    
+
     return {
-        'starting_balance': stated_starting_balance,  # Stated balance on earliest date
-        'calculated_starting_balance': calculated_starting_balance,  # For calculation
-        'ending_balance': ending_balance,
-        'calculated_ending': calculated_ending_from_running,  # Use running balance calculation
-        'discrepancy': discrepancy,
-        'total_debits': total_debits,
-        'total_credits': total_credits,
-        'earliest_date': earliest_tx.transaction_date,
-        'latest_date': latest_tx.transaction_date,
+        "starting_balance": stated_starting_balance,  # Stated balance on earliest date
+        "calculated_starting_balance": calculated_starting_balance,  # For calculation
+        "ending_balance": ending_balance,
+        "calculated_ending": calculated_ending_from_running,  # Use running balance calculation
+        "discrepancy": discrepancy,
+        "total_debits": total_debits,
+        "total_credits": total_credits,
+        "earliest_date": earliest_tx.transaction_date,
+        "latest_date": latest_tx.transaction_date,
     }
 
 
@@ -198,21 +214,31 @@ def print_transaction_summary(transactions_by_file: dict[str, list[Transaction]]
     total_ending = 0.0
     total_calculated = 0.0
     total_discrepancy = 0.0
-    
+
     for file_path, transactions in transactions_by_file.items():
         balance_info = analyze_debit_balances(transactions)
         if balance_info:
             debit_files[file_path] = balance_info
             file_name = Path(file_path).name
             print(f"\n{file_name}:")
-            print(f"  Period: {balance_info['earliest_date']} to {balance_info['latest_date']}")
-            print(f"  Starting balance (stated): EUR {balance_info['starting_balance']:,.2f}")
-            print(f"  Ending balance (stated): EUR {balance_info['ending_balance']:,.2f}")
-            print(f"  Calculated ending balance: EUR {balance_info['calculated_ending']:,.2f}")
-            print(f"  Ending balance discrepancy: EUR {balance_info['discrepancy']:,.2f}")
-            if balance_info['discrepancy'] != 0:
+            print(
+                f"  Period: {balance_info['earliest_date']} to {balance_info['latest_date']}"
+            )
+            print(
+                f"  Starting balance (stated): EUR {balance_info['starting_balance']:,.2f}"
+            )
+            print(
+                f"  Ending balance (stated): EUR {balance_info['ending_balance']:,.2f}"
+            )
+            print(
+                f"  Calculated ending balance: EUR {balance_info['calculated_ending']:,.2f}"
+            )
+            print(
+                f"  Ending balance discrepancy: EUR {balance_info['discrepancy']:,.2f}"
+            )
+            if balance_info["discrepancy"] != 0:
                 print(f"    [WARNING] Discrepancy detected!")
-    
+
     # Aggregate analysis: Collect ALL transactions, deduplicate, sort by date, and analyze
     if debit_files:
         # Collect all transactions from all debit files
@@ -221,7 +247,7 @@ def print_transaction_summary(transactions_by_file: dict[str, list[Transaction]]
             balance_info = analyze_debit_balances(transactions)
             if balance_info:  # Only include files with balance info (debit accounts)
                 all_debit_transactions.extend(transactions)
-        
+
         if all_debit_transactions:
             # Deduplicate transactions (files may overlap, causing same transaction to appear multiple times)
             # Use a signature: date, amount, type, and details (first 100 chars) to identify duplicates
@@ -229,33 +255,54 @@ def print_transaction_summary(transactions_by_file: dict[str, list[Transaction]]
             unique_transactions = []
             for tx in all_debit_transactions:
                 # Create signature for deduplication
-                sig = (tx.transaction_date, tx.amount, tx.transaction_type, tx.details[:100])
+                sig = (
+                    tx.transaction_date,
+                    tx.amount,
+                    tx.transaction_type,
+                    tx.details[:100],
+                )
                 if sig not in seen_signatures:
                     seen_signatures.add(sig)
                     unique_transactions.append(tx)
-            
+
             duplicates_removed = len(all_debit_transactions) - len(unique_transactions)
-            
+
             # Sort all unique transactions chronologically by date
-            sorted_all_txs = sorted(unique_transactions, key=lambda tx: parse_date(tx.transaction_date))
-            
+            sorted_all_txs = sorted(
+                unique_transactions, key=lambda tx: parse_date(tx.transaction_date)
+            )
+
             # Analyze the sorted transactions
             aggregate_info = analyze_debit_balances(sorted_all_txs)
-            
+
             if aggregate_info:
-                print(f"\n=== AGGREGATE BALANCE ANALYSIS (All Transactions Sorted by Date) ===")
+                print(
+                    f"\n=== AGGREGATE BALANCE ANALYSIS (All Transactions Sorted by Date) ==="
+                )
                 print(f"  Total transactions collected: {len(all_debit_transactions)}")
                 if duplicates_removed > 0:
-                    print(f"  Duplicates removed: {duplicates_removed} (from overlapping files)")
+                    print(
+                        f"  Duplicates removed: {duplicates_removed} (from overlapping files)"
+                    )
                 print(f"  Unique transactions analyzed: {len(sorted_all_txs)}")
-                print(f"  Period: {aggregate_info['earliest_date']} to {aggregate_info['latest_date']}")
-                print(f"  Starting balance (stated): EUR {aggregate_info['starting_balance']:,.2f}")
-                print(f"  Ending balance (stated): EUR {aggregate_info['ending_balance']:,.2f}")
+                print(
+                    f"  Period: {aggregate_info['earliest_date']} to {aggregate_info['latest_date']}"
+                )
+                print(
+                    f"  Starting balance (stated): EUR {aggregate_info['starting_balance']:,.2f}"
+                )
+                print(
+                    f"  Ending balance (stated): EUR {aggregate_info['ending_balance']:,.2f}"
+                )
                 print(f"  Total debits: EUR {aggregate_info['total_debits']:,.2f}")
                 print(f"  Total credits: EUR {aggregate_info['total_credits']:,.2f}")
-                print(f"  Calculated ending balance: EUR {aggregate_info['calculated_ending']:,.2f}")
-                print(f"  Ending balance discrepancy: EUR {aggregate_info['discrepancy']:,.2f}")
-                if aggregate_info['discrepancy'] != 0:
+                print(
+                    f"  Calculated ending balance: EUR {aggregate_info['calculated_ending']:,.2f}"
+                )
+                print(
+                    f"  Ending balance discrepancy: EUR {aggregate_info['discrepancy']:,.2f}"
+                )
+                if aggregate_info["discrepancy"] != 0:
                     print(f"    [WARNING] Aggregate discrepancy detected!")
 
     # Foreign currency transactions
@@ -263,7 +310,9 @@ def print_transaction_summary(transactions_by_file: dict[str, list[Transaction]]
     if fx_transactions:
         print(f"\nForeign currency transactions: {len(fx_transactions)}")
         for tx in fx_transactions[:5]:
-            print(f"  {tx.transaction_date}: {tx.original_amount} {tx.original_currency} @ {tx.exchange_rate} = €{tx.amount}")
+            print(
+                f"  {tx.transaction_date}: {tx.original_amount} {tx.original_currency} @ {tx.exchange_rate} = €{tx.amount}"
+            )
 
 
 def main():

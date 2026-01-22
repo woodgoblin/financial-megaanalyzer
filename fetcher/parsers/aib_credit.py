@@ -12,6 +12,7 @@ try:
 except ImportError:
     import sys
     from pathlib import Path
+
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from models import Transaction
 
@@ -143,14 +144,24 @@ class AIBCreditParser:
             end_date = None
             end_year = None
             statement_match = re.search(
-                r"Account Statement - (\d{1,2})(?:st|nd|rd|th)?\s+(\w+),\s+(\d{4})", full_text
+                r"Account Statement - (\d{1,2})(?:st|nd|rd|th)?\s+(\w+),\s+(\d{4})",
+                full_text,
             )
             if statement_match:
                 end_year = int(statement_match.group(3))
                 month_map = {
-                    "January": "Jan", "February": "Feb", "March": "Mar", "April": "Apr",
-                    "May": "May", "June": "Jun", "July": "Jul", "August": "Aug",
-                    "September": "Sep", "October": "Oct", "November": "Nov", "December": "Dec",
+                    "January": "Jan",
+                    "February": "Feb",
+                    "March": "Mar",
+                    "April": "Apr",
+                    "May": "May",
+                    "June": "Jun",
+                    "July": "Jul",
+                    "August": "Aug",
+                    "September": "Sep",
+                    "October": "Oct",
+                    "November": "Nov",
+                    "December": "Dec",
                 }
                 month_name = statement_match.group(2)
                 month_abbr = month_map.get(month_name, "Jan")
@@ -162,7 +173,7 @@ class AIBCreditParser:
             if not trans_start:
                 return transactions
 
-            trans_text = full_text[trans_start.end():]
+            trans_text = full_text[trans_start.end() :]
             lines = trans_text.split("\n")
 
             i = 0
@@ -177,7 +188,8 @@ class AIBCreditParser:
                 # Example: "5 Jan 5 Jan DIRECT DEBIT - THANK YOU 2,522.86CR"
                 # Amount may have commas: "2,522.86" or "35.72"
                 trans_match = re.match(
-                    r"(\d{1,2})\s+(\w{3})\s+(\d{1,2})\s+(\w{3})\s+(.+?)\s+(-?\d{1,3}(?:,\d{3})*\.?\d*)(CR)?$", line
+                    r"(\d{1,2})\s+(\w{3})\s+(\d{1,2})\s+(\w{3})\s+(.+?)\s+(-?\d{1,3}(?:,\d{3})*\.?\d*)(CR)?$",
+                    line,
                 )
                 if trans_match:
                     trans_day = int(trans_match.group(1))
@@ -185,7 +197,7 @@ class AIBCreditParser:
                     post_day = int(trans_match.group(3))
                     post_month_abbr = trans_match.group(4)
                     details = trans_match.group(5).strip()
-                    amount_str = trans_match.group(6).replace(',', '')  # Remove commas
+                    amount_str = trans_match.group(6).replace(",", "")  # Remove commas
                     amount = float(amount_str)
                     is_credit = trans_match.group(7) == "CR"  # Check for CR suffix
 
@@ -193,7 +205,9 @@ class AIBCreditParser:
                     try:
                         trans_month = datetime.strptime(trans_month_abbr, "%b").month
                         if end_date:
-                            end_month = datetime.strptime(end_date.split()[1], "%b").month
+                            end_month = datetime.strptime(
+                                end_date.split()[1], "%b"
+                            ).month
                             if trans_month > end_month:
                                 year = end_year - 1
                             else:
@@ -235,7 +249,8 @@ class AIBCreditParser:
                         # Foreign currency info
                         # Format: "XX.XX USD @ rate of X.XXXXXX"
                         fx_match = re.search(
-                            r"(\d+\.?\d*)\s+([A-Z]{3})\s+@\s+rate\s+of\s+(\d+\.?\d+)", next_line
+                            r"(\d+\.?\d*)\s+([A-Z]{3})\s+@\s+rate\s+of\s+(\d+\.?\d+)",
+                            next_line,
                         )
                         if fx_match:
                             original_amount = float(fx_match.group(1))

@@ -301,20 +301,20 @@ class TestAIBCreditParserExtractTransactions:
         # Arrange
         mock_reader = Mock()
         mock_reader_class.return_value = mock_reader
-        
+
         mock_page = Mock()
         mock_page.extract_text.return_value = """
         Account Statement - 15th January, 2025
         Transaction Date Posting Date Details
         5 Jan 5 Jan TEST MERCHANT 50.00
         """
-        
+
         mock_reader.pages = [mock_page]
-        
+
         # Act
         parser = AIBCreditParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert len(result) == 1
         assert result[0].amount == 50.00
@@ -329,20 +329,20 @@ class TestAIBCreditParserExtractTransactions:
         # Arrange
         mock_reader = Mock()
         mock_reader_class.return_value = mock_reader
-        
+
         mock_page = Mock()
         mock_page.extract_text.return_value = """
         Account Statement - 20th February, 2025
         Transaction Date Posting Date Details
         10 Feb 10 Feb DIRECT DEBIT - THANK YOU 2,522.86CR
         """
-        
+
         mock_reader.pages = [mock_page]
-        
+
         # Act
         parser = AIBCreditParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert len(result) == 1
         assert result[0].amount == 2522.86
@@ -356,7 +356,7 @@ class TestAIBCreditParserExtractTransactions:
         # Arrange
         mock_reader = Mock()
         mock_reader_class.return_value = mock_reader
-        
+
         mock_page = Mock()
         mock_page.extract_text.return_value = """
         Account Statement - 15th March, 2025
@@ -364,13 +364,13 @@ class TestAIBCreditParserExtractTransactions:
         8 Mar 8 Mar MERCHANT NAME 75.50
         Ref: 123456789
         """
-        
+
         mock_reader.pages = [mock_page]
-        
+
         # Act
         parser = AIBCreditParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert len(result) == 1
         assert result[0].amount == 75.50
@@ -382,7 +382,7 @@ class TestAIBCreditParserExtractTransactions:
         # Arrange
         mock_reader = Mock()
         mock_reader_class.return_value = mock_reader
-        
+
         mock_page = Mock()
         mock_page.extract_text.return_value = """
         Account Statement - 25th April, 2025
@@ -391,13 +391,13 @@ class TestAIBCreditParserExtractTransactions:
         50.00 USD @ rate of 2.000000
         Currency Conversion Fee of 1.50
         """
-        
+
         mock_reader.pages = [mock_page]
-        
+
         # Act
         parser = AIBCreditParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert len(result) == 1
         assert result[0].amount == 100.00
@@ -412,7 +412,7 @@ class TestAIBCreditParserExtractTransactions:
         # Arrange
         mock_reader = Mock()
         mock_reader_class.return_value = mock_reader
-        
+
         mock_page = Mock()
         mock_page.extract_text.return_value = """
         Account Statement - 30th May, 2025
@@ -421,13 +421,13 @@ class TestAIBCreditParserExtractTransactions:
         15 May 15 May MERCHANT TWO 50.00
         20 May 20 May MERCHANT THREE 100.00CR
         """
-        
+
         mock_reader.pages = [mock_page]
-        
+
         # Act
         parser = AIBCreditParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert len(result) == 3
         assert result[0].amount == 25.00
@@ -442,11 +442,11 @@ class TestAIBCreditParserExtractTransactions:
         """Exception during PDF processing returns empty list."""
         # Arrange
         mock_reader_class.side_effect = Exception("PDF error")
-        
+
         # Act
         parser = AIBCreditParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert result == []
 
@@ -456,18 +456,18 @@ class TestAIBCreditParserExtractTransactions:
         # Arrange
         mock_reader = Mock()
         mock_reader_class.return_value = mock_reader
-        
+
         mock_page = Mock()
         mock_page.extract_text.return_value = """
         Account Statement - 15th June, 2025
         No transactions in this statement
         """
-        
+
         mock_reader.pages = [mock_page]
-        
+
         # Act
         parser = AIBCreditParser()
         result = parser.extract_transactions(Path("dummy.pdf"))
-        
+
         # Assert
         assert result == []

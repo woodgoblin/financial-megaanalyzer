@@ -42,7 +42,7 @@ def main():
         sys.exit(1)
 
     transactions = parser.extract_transactions(pdf_path)
-    
+
     if not transactions:
         print("No transactions found.")
         return
@@ -50,13 +50,21 @@ def main():
     print(f"Extracted {len(transactions)} transactions\n")
     print("=" * 100)
     for i, tx in enumerate(transactions, 1):
-        balance_str = f"Balance: {tx.balance:,.2f}" if tx.balance is not None else "Balance: N/A"
-        print(f"{i:3d}. {tx.transaction_date}: {tx.amount:10.2f} {tx.currency} [{tx.transaction_type:6s}] | {balance_str:20s} | {tx.details}")
+        balance_str = (
+            f"Balance: {tx.balance:,.2f}" if tx.balance is not None else "Balance: N/A"
+        )
+        print(
+            f"{i:3d}. {tx.transaction_date}: {tx.amount:10.2f} {tx.currency} [{tx.transaction_type:6s}] | {balance_str:20s} | {tx.details}"
+        )
     print("=" * 100)
-    
+
     # Summary
-    total_debit = sum(tx.amount for tx in transactions if tx.transaction_type == "Debit")
-    total_credit = sum(tx.amount for tx in transactions if tx.transaction_type == "Credit")
+    total_debit = sum(
+        tx.amount for tx in transactions if tx.transaction_type == "Debit"
+    )
+    total_credit = sum(
+        tx.amount for tx in transactions if tx.transaction_type == "Credit"
+    )
     print(f"\nSummary:")
     print(f"  Debits: EUR {total_debit:,.2f}")
     print(f"  Credits: EUR {total_credit:,.2f}")

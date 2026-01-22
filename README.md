@@ -1,6 +1,11 @@
 # financial-megaanalyzer
 My attempt to have a tool that extracts info from bank statements (omitting bothersome integrations) and then running visualizations/data analysis on it.
 
+## Transaction Fetcher
+
+[![Tests](https://github.com/woodgoblin/financial-megaanalyzer/actions/workflows/ci.yml/badge.svg?label=tests)](https://github.com/woodgoblin/financial-megaanalyzer/actions/workflows/ci.yml)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 ## Usage
 
 ### Analyze AIB Statements
