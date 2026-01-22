@@ -28,6 +28,9 @@ MAX_LOOKAHEAD_LINES = 15
 MAX_DETAILS_LENGTH = 100
 HEADER_TOLERANCE_Y = 5
 
+# Regex pattern for matching transaction amounts (integers or decimals with 1-2 decimal places)
+AMOUNT_PATTERN = re.compile(r"^\d+(?:\.\d{1,2})?$")
+
 
 class AIBDebitParser:
     """Parser for AIB Personal Bank Account (debit) statements."""
@@ -320,7 +323,7 @@ class AIBDebitParser:
                 reference_value = text
 
             # Check for transaction amount
-            if re.match(r"^\d+\.?\d{1,2}$", text):
+            if AMOUNT_PATTERN.match(text):
                 try:
                     amount = float(text)
                     if MIN_TRANSACTION_AMOUNT <= amount <= MAX_TRANSACTION_AMOUNT:
@@ -398,7 +401,7 @@ class AIBDebitParser:
             has_another_tx = False
             for word in next_line_words:
                 text = word["text"].replace(",", "")
-                if re.match(r"^\d+\.?\d{1,2}$", text):
+                if AMOUNT_PATTERN.match(text):
                     try:
                         amt = float(text)
                         if MIN_TRANSACTION_AMOUNT <= amt <= MAX_TRANSACTION_AMOUNT:
