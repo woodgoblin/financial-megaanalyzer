@@ -1,10 +1,13 @@
 """Parser for AIB debit account statements."""
 
+import logging
 import re
 from pathlib import Path
 
 from pypdf import PdfReader
 import pdfplumber
+
+logger = logging.getLogger(__name__)
 
 # Import Transaction model - handle both relative and absolute imports
 try:
@@ -124,7 +127,10 @@ class AIBDebitParser:
 
             return (start_date, end_date)
 
-        except Exception:
+        except Exception as e:
+            logger.error(
+                f"Error extracting dates from {pdf_path.name}: {e}", exc_info=True
+            )
             return None
 
     def extract_transactions(self, pdf_path: Path) -> list[Transaction]:
@@ -152,7 +158,10 @@ class AIBDebitParser:
 
         except Exception as e:
             # Log error but return empty list rather than crashing
-            print(f"Error extracting transactions from {pdf_path.name}: {e}")
+            logger.error(
+                f"Error extracting transactions from {pdf_path.name}: {e}",
+                exc_info=True,
+            )
             return []
 
         return transactions
