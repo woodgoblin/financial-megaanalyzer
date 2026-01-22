@@ -401,6 +401,7 @@ class TestAIBCreditParserExtractTransactions:
         # Assert
         assert len(result) == 1
         assert result[0].amount == 100.00
+        assert result[0].currency == "EUR"  # Amount is in EUR after conversion
         assert result[0].original_amount == 50.00
         assert result[0].original_currency == "USD"
         assert result[0].exchange_rate == 2.000000

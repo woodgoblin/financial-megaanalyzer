@@ -282,7 +282,9 @@ class AIBCreditParser:
 
                     # Determine transaction type: CR suffix = Credit, otherwise Debit
                     transaction_type = "Credit" if is_credit else "Debit"
-                    currency = original_currency if original_currency else "EUR"
+                    # Amount is always in EUR after conversion; currency field should always be EUR
+                    # Original currency info is stored separately in original_currency field
+                    currency = "EUR"
 
                     transaction = Transaction(
                         amount=abs(amount),
