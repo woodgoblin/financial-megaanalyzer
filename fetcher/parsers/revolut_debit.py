@@ -1,10 +1,18 @@
-"""Parser for Revolut debit account statements."""
+"""Parser for Revolut debit account statements.
 
+Note: Revolut provides better data export via Excel (.xlsx) format.
+For transaction extraction, use RevolutExcelTransactionExtractor instead.
+This PDF parser only extracts date ranges for statement continuity analysis.
+"""
+
+import logging
 import re
 from pathlib import Path
 from datetime import datetime
 
 from pypdf import PdfReader
+
+logger = logging.getLogger(__name__)
 
 
 class RevolutDebitParser:
@@ -110,6 +118,25 @@ class RevolutDebitParser:
 
         except Exception:
             return None
+
+    def extract_transactions(self, pdf_path: Path) -> list:
+        """
+        Extract transactions from a Revolut PDF statement.
+
+        Note: Revolut PDF statements are not ideal for transaction extraction.
+        Use RevolutExcelTransactionExtractor with Revolut Excel exports instead
+        for accurate transaction data including fees and balances.
+
+        Returns:
+            Empty list - use Excel extractor for transactions.
+        """
+        logger.warning(
+            "Revolut PDF transaction extraction is not supported. "
+            "Please use RevolutExcelTransactionExtractor with Revolut Excel export (.xlsx) instead. "
+            "File: %s",
+            pdf_path.name,
+        )
+        return []
 
 
 # Auto-register parser instance

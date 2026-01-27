@@ -1,4 +1,9 @@
-"""Script to extract and analyze transaction records from PDF statements."""
+"""Script to extract and analyze transaction records from statements.
+
+Supports:
+- AIB Debit/Credit PDF statements
+- Revolut Excel (.xlsx) exports
+"""
 
 import sys
 from pathlib import Path
@@ -8,6 +13,7 @@ from datetime import datetime
 from parsers import parse_statement
 from parsers.aib_debit import AIBDebitParser
 from parsers.aib_credit import AIBCreditParser
+from parsers.revolut_excel_transaction_extractor import RevolutExcelTransactionExtractor
 from models import Transaction
 
 # Import parsers to trigger registration
@@ -22,42 +28,85 @@ def parse_date(date_str: str) -> datetime:
 
 def analyze_transactions_directory(
     statements_dir: Path,
+    revolut_product: str = "Current",
 ) -> dict[str, list[Transaction]]:
     """
-    Analyze transactions from all PDF statements in a directory.
+    Analyze transactions from all statements (PDF and Excel) in a directory.
+
+    Args:
+        statements_dir: Directory containing statement files
+        revolut_product: Product filter for Revolut Excel files (default: "Current")
 
     Returns:
         Dictionary mapping file paths to lists of Transaction objects
     """
     results = {}
+
+    # Process PDF files (AIB)
     pdf_files = sorted(statements_dir.glob("*.pdf"))
-
     for pdf_path in pdf_files:
-        result = parse_statement(pdf_path)
-        if not result:
-            print(f"WARNING: Could not parse {pdf_path.name}")
-            continue
-
-        start_date, end_date, parser_name = result
-
-        # Get parser instance and extract transactions
-        if parser_name == "AIB Debit Account":
-            parser = AIBDebitParser()
-            transactions = parser.extract_transactions(pdf_path)
-        elif parser_name == "AIB Credit Card":
-            parser = AIBCreditParser()
-            transactions = parser.extract_transactions(pdf_path)
-        else:
-            print(f"WARNING: Transaction extraction not implemented for {parser_name}")
-            transactions = []
-
+        transactions = _extract_pdf_transactions(pdf_path)
         if transactions:
             results[str(pdf_path)] = transactions
-            print(
-                f"[OK] {pdf_path.name}: {len(transactions)} transactions ({start_date} to {end_date})"
-            )
+
+    # Process Excel files (Revolut)
+    excel_files = sorted(statements_dir.glob("*.xlsx"))
+    for excel_path in excel_files:
+        transactions = _extract_excel_transactions(excel_path, revolut_product)
+        if transactions:
+            results[str(excel_path)] = transactions
 
     return results
+
+
+def _extract_pdf_transactions(pdf_path: Path) -> list[Transaction]:
+    """Extract transactions from a PDF statement (AIB)."""
+    result = parse_statement(pdf_path)
+    if not result:
+        print(f"WARNING: Could not parse {pdf_path.name}")
+        return []
+
+    start_date, end_date, parser_name = result
+
+    # Get parser instance and extract transactions
+    if parser_name == "AIB Debit Account":
+        parser = AIBDebitParser()
+        transactions = parser.extract_transactions(pdf_path)
+    elif parser_name == "AIB Credit Card":
+        parser = AIBCreditParser()
+        transactions = parser.extract_transactions(pdf_path)
+    else:
+        print(f"WARNING: Transaction extraction not implemented for {parser_name}")
+        return []
+
+    if transactions:
+        print(
+            f"[OK] {pdf_path.name}: {len(transactions)} transactions ({start_date} to {end_date})"
+        )
+
+    return transactions
+
+
+def _extract_excel_transactions(
+    excel_path: Path, product: str = "Current"
+) -> list[Transaction]:
+    """Extract transactions from an Excel statement (Revolut)."""
+    extractor = RevolutExcelTransactionExtractor(product=product)
+
+    if not extractor.can_parse(excel_path):
+        print(f"WARNING: Not a valid Revolut Excel file: {excel_path.name}")
+        return []
+
+    dates = extractor.extract_dates(excel_path)
+    transactions = extractor.extract_transactions(excel_path)
+
+    if transactions:
+        date_range = f"{dates[0]} to {dates[1]}" if dates else "unknown dates"
+        print(
+            f"[OK] {excel_path.name}: {len(transactions)} transactions ({date_range}) [Product: {product}]"
+        )
+
+    return transactions
 
 
 def analyze_debit_balances(transactions: list[Transaction]) -> dict | None:
@@ -111,7 +160,7 @@ def analyze_debit_balances(transactions: list[Transaction]) -> dict | None:
     # But also calculate it by processing all transactions to verify
     ending_balance = latest_tx.balance
 
-    # Calculate: starting balance (before first tx) - debits + credits
+    # Calculate: starting balance (before first tx) - debits + credits - fees
     # Exclude BALANCE FORWARD/OPENING BALANCE entries (they have amount 0.00 and are not real transactions)
     total_debits = sum(
         tx.amount
@@ -125,6 +174,13 @@ def analyze_debit_balances(transactions: list[Transaction]) -> dict | None:
         for tx in transactions
         if tx.transaction_type == "Credit"
         and "BALANCE FORWARD" not in tx.details.upper()
+        and "OPENING BALANCE" not in tx.details.upper()
+    )
+    # Sum of fees (Revolut transactions may have separate fees)
+    total_fees = sum(
+        tx.fee or 0.0
+        for tx in transactions
+        if "BALANCE FORWARD" not in tx.details.upper()
         and "OPENING BALANCE" not in tx.details.upper()
     )
 
@@ -144,6 +200,9 @@ def analyze_debit_balances(transactions: list[Transaction]) -> dict | None:
             running_balance -= tx.amount
         else:
             running_balance += tx.amount
+        # Subtract fee if present (Revolut transactions)
+        if tx.fee:
+            running_balance -= tx.fee
         # If this transaction has a stated balance, use it to verify/correct running balance
         if tx.balance is not None:
             # Update running balance to match stated balance (in case of discrepancies)
@@ -161,6 +220,7 @@ def analyze_debit_balances(transactions: list[Transaction]) -> dict | None:
         "discrepancy": discrepancy,
         "total_debits": total_debits,
         "total_credits": total_credits,
+        "total_fees": total_fees,
         "earliest_date": earliest_tx.transaction_date,
         "latest_date": latest_tx.transaction_date,
     }
@@ -202,10 +262,17 @@ def print_transaction_summary(transactions_by_file: dict[str, list[Transaction]]
     for currency, count in sorted(by_currency.items()):
         print(f"  {currency}: {count}")
 
+    # Sum of fees (Revolut transactions)
+    total_fees = sum(tx.fee or 0.0 for tx in all_transactions)
+
     print(f"\nTotal amounts:")
     print(f"  Debits: EUR{total_debit:,.2f}")
     print(f"  Credits: EUR{total_credit:,.2f}")
-    print(f"  Net: EUR{total_credit - total_debit:,.2f}")
+    if total_fees > 0:
+        print(f"  Fees: EUR{total_fees:,.2f}")
+        print(f"  Net: EUR{total_credit - total_debit - total_fees:,.2f}")
+    else:
+        print(f"  Net: EUR{total_credit - total_debit:,.2f}")
 
     # Balance analysis for debit accounts
     print(f"\n=== DEBIT ACCOUNT BALANCE ANALYSIS ===")
@@ -296,6 +363,8 @@ def print_transaction_summary(transactions_by_file: dict[str, list[Transaction]]
                 )
                 print(f"  Total debits: EUR {aggregate_info['total_debits']:,.2f}")
                 print(f"  Total credits: EUR {aggregate_info['total_credits']:,.2f}")
+                if aggregate_info.get("total_fees", 0) > 0:
+                    print(f"  Total fees: EUR {aggregate_info['total_fees']:,.2f}")
                 print(
                     f"  Calculated ending balance: EUR {aggregate_info['calculated_ending']:,.2f}"
                 )
@@ -317,10 +386,16 @@ def print_transaction_summary(transactions_by_file: dict[str, list[Transaction]]
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python analyze_transactions.py <statements_directory>")
-        print("\nExample:")
+        print("Usage: python analyze_transactions.py <statements_directory> [product]")
+        print("\nArguments:")
+        print("  statements_directory  Directory containing statement files")
+        print("  product               Revolut product filter (default: Current)")
+        print("                        Options: Current, Savings, Deposit")
+        print("\nExamples:")
         print("  python analyze_transactions.py ../statements_raw/aib/debit")
         print("  python analyze_transactions.py ../statements_raw/aib/credit")
+        print("  python analyze_transactions.py ../statements_raw/revolut")
+        print("  python analyze_transactions.py ../statements_raw/revolut Savings")
         sys.exit(1)
 
     statements_dir = Path(sys.argv[1])
@@ -328,8 +403,17 @@ def main():
         print(f"ERROR: Directory not found: {statements_dir}")
         sys.exit(1)
 
-    print(f"Analyzing transactions from: {statements_dir}\n")
-    transactions_by_file = analyze_transactions_directory(statements_dir)
+    # Optional product filter for Revolut
+    product = sys.argv[2] if len(sys.argv) > 2 else "Current"
+
+    print(f"Analyzing transactions from: {statements_dir}")
+    if any(statements_dir.glob("*.xlsx")):
+        print(f"Revolut product filter: {product}")
+    print()
+
+    transactions_by_file = analyze_transactions_directory(
+        statements_dir, revolut_product=product
+    )
     print_transaction_summary(transactions_by_file)
 
 
