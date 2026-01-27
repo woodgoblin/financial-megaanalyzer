@@ -86,3 +86,5 @@ class Transaction(BaseModel):
     """Foreign exchange fee."""
     posting_date: Optional[str] = None
     """Posting date in 'DD MMM YYYY' format (for credit accounts)."""
+    fee: Optional[float] = None
+    """Transaction fee (e.g., Revolut fees separate from amount)."""
