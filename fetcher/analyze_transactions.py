@@ -160,7 +160,7 @@ def analyze_debit_balances(transactions: list[Transaction]) -> dict | None:
     # But also calculate it by processing all transactions to verify
     ending_balance = latest_tx.balance
 
-    # Calculate: starting balance (before first tx) - debits + credits - fees
+    # Calculate total debits and credits (fees are handled separately in the running balance loop)
     # Exclude BALANCE FORWARD/OPENING BALANCE entries (they have amount 0.00 and are not real transactions)
     total_debits = sum(
         tx.amount
@@ -265,14 +265,14 @@ def print_transaction_summary(transactions_by_file: dict[str, list[Transaction]]
     # Sum of fees (Revolut transactions)
     total_fees = sum(tx.fee or 0.0 for tx in all_transactions)
 
+    net_amount = total_credit - total_debit - total_fees
+
     print(f"\nTotal amounts:")
     print(f"  Debits: EUR{total_debit:,.2f}")
     print(f"  Credits: EUR{total_credit:,.2f}")
     if total_fees > 0:
         print(f"  Fees: EUR{total_fees:,.2f}")
-        print(f"  Net: EUR{total_credit - total_debit - total_fees:,.2f}")
-    else:
-        print(f"  Net: EUR{total_credit - total_debit:,.2f}")
+    print(f"  Net: EUR{net_amount:,.2f}")
 
     # Balance analysis for debit accounts
     print(f"\n=== DEBIT ACCOUNT BALANCE ANALYSIS ===")
